@@ -9,8 +9,32 @@ var deck;
 
 var canHit = true;
 
+var balance = 500;
+var bet;
+
+var yourCards = [];
+var dealerCards = []
+
+
+/*
+COMPLETED
+blackJack()
+dealerBlackJack()
+redid win conditions
+
+CURRENTLY DOING:
+adjust balance based on bet
+
+TODO:
+if player has no $, can't play
+chosing bets
+chip animations
+*/
+
+
 window.onload = function() {
     document.getElementById('play-again').style.visibility = 'hidden';
+    document.getElementById('balance').innerText = 500;
     buildDeck();-
     shuffleDeck();
     startGame();
@@ -39,20 +63,26 @@ function shuffleDeck() {
 
 function startGame() {
     hidden = deck.pop();
+    dealerCards.push(hidden);
     hiddenImg = document.createElement("img");
     hiddenImg.src = "./cards/BACK.png";
     document.getElementById("dealer-cards").append(hiddenImg);
+
+    bet = 50;
+    balance -= bet;
 
     dealerSum += getValue(hidden);
     dealerAceCount += checkAce(hidden);
 
     document.getElementById('your-sum').innerText = "";
     document.getElementById('dealer-sum').innerText = "";
+    document.getElementById("bet").innerText = bet;
 
     
     while (dealerSum < 17) {
         let cardImg = document.createElement("img");
         let card = deck.pop();
+        dealerCards.push(card);
         cardImg.src = "./cards/" + card + ".png";
         dealerSum += getValue(card);
         dealerAceCount += checkAce(card);
@@ -62,6 +92,7 @@ function startGame() {
     for (let i = 0; i < 2; i++) {
         let cardImg = document.createElement("img");
         let card = deck.pop();
+        yourCards.push(card);
         cardImg.src = "./cards/" + card + ".png";
         yourSum += getValue(card);
         yourAceCount += checkAce(card);
@@ -79,6 +110,7 @@ function hit() {
 
     let cardImg = document.createElement("img");
     let card = deck.pop();
+    yourCards.push(card);
     cardImg.src = "./cards/" + card + ".png";
     yourSum += getValue(card);
     yourAceCount += checkAce(card);
@@ -95,30 +127,49 @@ function stay() {
     yourSum = reduceAce(yourSum, yourAceCount);
 
     canHit = false;
-    console.log(document.getElementById("dealer-cards"));
     document.getElementById('dealer-cards').children[0].src = "./cards/" + hidden + ".png";
 
     let message = "";
-    if (yourSum > 21) {
-        message = "You Lose!";
+
+    if (!dealerBlackJack() && blackJack()){
+        message = "Black Jack!";
+        balance += 3*bet;
+        bet = 0;
     }
-    else if (dealerSum > 21) {
-        message = "You win!";
+
+    else if (yourSum > 21){
+        message = "You Bust!";
+        bet = 0;
     }
-    else if (yourSum == dealerSum) {
-        message = "Tie!";
+
+    else if (dealerSum > 21){
+        message = "Dealer Busts!";
+        balance += 2*bet;
+        bet = 0;
     }
-    else if (yourSum > dealerSum) {
-        message = "You Win!";
+
+    else if (yourSum > dealerSum){
+        message = "You Win!"
+        balance += 2*bet;
+        bet = 0;
     }
-    else if (yourSum < dealerSum) {
-        message = "You Lose!";
+
+    else if (yourSum < dealerSum){
+        message = "You Loose!";
+        bet = 0;
+    }
+
+    else if (yourSum == dealerSum){
+        message = "Push";
+        balance += bet;
+        bet = 0;
     }
 
     document.getElementById("dealer-sum").innerText = dealerSum;
     document.getElementById("your-sum").innerText = yourSum;
     document.getElementById("results").innerText = message;
     document.getElementById('play-again').style.visibility = 'visible';
+
     document.getElementById("play-again").addEventListener("click", playAgain);
 }
 
@@ -159,6 +210,10 @@ function playAgain(){
 
     canHit = true;
 
+    yourCards = [];
+    dealerCards = [];
+
+    document.getElementById("balance").innerText = balance;
 
     while (document.getElementById("your-cards").firstChild){
         document.getElementById("your-cards").removeChild(document.getElementById("your-cards").firstChild);
@@ -170,7 +225,51 @@ function playAgain(){
 
     document.createElement("hidden");
     document.getElementById('play-again').style.visibility = 'hidden';
+
+    document.getElementById("results").innerText = "";
+
     buildDeck();
     shuffleDeck();
     startGame();
+}
+
+function blackJack(){
+    let ace = false;
+    let ten = false;    
+
+    if (yourCards.length == 2){
+
+        for (let i = 0; i < 2; i ++){
+
+            if (yourCards[i][0] == "J" || yourCards[i][0] == "Q" || yourCards[i][0] == "K" || (yourCards[i][0] == "1" && yourCards[i][1] == "0")){
+                ten = true;
+            }
+            else if (yourCards[i][0] == "A"){
+                ace = true;
+            }
+        }
+    }
+
+    return (ace && ten);
+
+}
+
+function dealerBlackJack(){
+    let ace = false;
+    let ten = false;    
+
+    if (dealerCards.length == 2){
+
+        for (let i = 0; i < 2; i ++){
+
+            if (dealerCards[i][0] == "J" || dealerCards[i][0] == "Q" || dealerCards[i][0] == "K" || (dealerCards[i][0] == "1" && dealerCards[i][1] == "0")){
+                ten = true;
+            }
+            else if (dealerCards[i][0] == "A"){
+                ace = true;
+            }
+        }
+    }
+
+    return (ace && ten);
 }
