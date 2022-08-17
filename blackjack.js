@@ -17,18 +17,26 @@ var dealerCards = []
 
 
 /*
+                MAIN ELEMENTS
 COMPLETED
 blackJack()
 dealerBlackJack()
 redid win conditions
+payouts - commit made
+proper dealer dealings
+hide hit/stand buttons after game is done
+if player busts, game ends
 
 CURRENTLY DOING:
-adjust balance based on bet
 
 TODO:
+customizeable bets
 if player has no $, can't play
-chosing bets
 chip animations
+
+                SECONDARY ELEMENTS
+TODO:
+time delay for the dealer's cards
 */
 
 
@@ -67,27 +75,25 @@ function startGame() {
     hiddenImg = document.createElement("img");
     hiddenImg.src = "./cards/BACK.png";
     document.getElementById("dealer-cards").append(hiddenImg);
+    dealerSum += getValue(hidden);
+    dealerAceCount += checkAce(hidden);
+
+    showing = deck.pop();
+    dealerCards.push(showing);
+    showingImg = document.createElement('img');
+    showingImg.src = "./cards/" + showing + ".png";
+    document.getElementById("dealer-cards").append(showingImg);
+    dealerSum += getValue(showing);
+    dealerAceCount += checkAce(showing);
 
     bet = 50;
     balance -= bet;
 
-    dealerSum += getValue(hidden);
-    dealerAceCount += checkAce(hidden);
-
     document.getElementById('your-sum').innerText = "";
     document.getElementById('dealer-sum').innerText = "";
     document.getElementById("bet").innerText = bet;
-
-    
-    while (dealerSum < 17) {
-        let cardImg = document.createElement("img");
-        let card = deck.pop();
-        dealerCards.push(card);
-        cardImg.src = "./cards/" + card + ".png";
-        dealerSum += getValue(card);
-        dealerAceCount += checkAce(card);
-        document.getElementById("dealer-cards").append(cardImg);
-    }
+    document.getElementById('hit').style.visibility = 'visible';
+    document.getElementById('stand').style.visibility = 'visible';
 
     for (let i = 0; i < 2; i++) {
         let cardImg = document.createElement("img");
@@ -99,8 +105,11 @@ function startGame() {
         document.getElementById("your-cards").append(cardImg);
     }
     document.getElementById("hit").addEventListener("click", hit);
-    document.getElementById("stay").addEventListener("click", stay);
+    document.getElementById("stand").addEventListener("click", stand);
 
+    if (blackJack()){
+        stand();
+    }
 }
 
 function hit() {
@@ -118,11 +127,24 @@ function hit() {
 
     if (reduceAce(yourSum, yourAceCount) > 21) { //A, J, 8 -> 1 + 10 + 8
         canHit = false;
+        stand();
     }
 
 }
 
-function stay() {
+function stand() {
+
+    while (dealerSum < 17) {
+        let cardImg = document.createElement("img");
+        let card = deck.pop();
+        dealerCards.push(card);
+        cardImg.src = "./cards/" + card + ".png";
+        dealerSum += getValue(card);
+        dealerAceCount += checkAce(card);
+        document.getElementById("dealer-cards").append(cardImg);
+        dealerSum = reduceAce(dealerSum, dealerAceCount);
+    }
+
     dealerSum = reduceAce(dealerSum, dealerAceCount);
     yourSum = reduceAce(yourSum, yourAceCount);
 
@@ -168,8 +190,9 @@ function stay() {
     document.getElementById("dealer-sum").innerText = dealerSum;
     document.getElementById("your-sum").innerText = yourSum;
     document.getElementById("results").innerText = message;
+    document.getElementById('stand').style.visibility = 'hidden';
+    document.getElementById('hit').style.visibility = 'hidden';
     document.getElementById('play-again').style.visibility = 'visible';
-
     document.getElementById("play-again").addEventListener("click", playAgain);
 }
 
