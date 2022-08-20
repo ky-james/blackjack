@@ -1,5 +1,5 @@
 var dealerSum = 0;
-var yourSum = 0;
+var playerSum = 0;
 
 var dealerAceCount = 0;
 var yourAceCount = 0; 
@@ -10,10 +10,11 @@ var deck;
 var canHit = true;
 
 var balance = 500;
-var bet;
+var bet = 0;
 
 var yourCards = [];
-var dealerCards = []
+var dealerCards = [];
+
 
 
 /*
@@ -26,26 +27,65 @@ payouts - commit made
 proper dealer dealings
 hide hit/stand buttons after game is done
 if player busts, game ends
+created bet buttons
+fix customizeable bet payouts
+lock in bets before cards are shown
 
 CURRENTLY DOING:
 
+
 TODO:
-customizeable bets
 if player has no $, can't play
+
 chip animations
 
-                SECONDARY ELEMENTS
-TODO:
-time delay for the dealer's cards
 */
 
 
 window.onload = function() {
+    resetGame();
+}
+
+function resetGame(){
+    playerSum = 0;
+    dealerSum = 0;
+    yourCards = [];
+    dealerCards = [];
+    canHit = true;
+
+    document.getElementById('results').innerText = "";
     document.getElementById('play-again').style.visibility = 'hidden';
-    document.getElementById('balance').innerText = 500;
-    buildDeck();-
-    shuffleDeck();
-    startGame();
+    document.getElementById('stand').style.visibility = 'hidden';
+    document.getElementById('hit').style.visibility = 'hidden';
+    document.getElementById("dealer-sum").innerText = '?';
+    document.getElementById("your-sum").innerText = '?';
+    document.getElementById("increase-bet").style.visibility = 'visible';
+    document.getElementById("decrease-bet").style.visibility = 'visible';
+    document.getElementById("lock-bet").style.visibility = 'visible';
+    document.getElementById('balance').innerText = balance;
+    document.getElementById('bet').innerText = bet;
+
+    while (document.getElementById("your-cards").firstChild){
+        document.getElementById("your-cards").removeChild(document.getElementById("your-cards").firstChild);
+    }
+
+    while (document.getElementById("dealer-cards").firstChild){
+        document.getElementById("dealer-cards").removeChild(document.getElementById("dealer-cards").firstChild);
+    }
+
+
+    for (i = 0; i<2; i++){
+        dealerCard = document.createElement("img");
+        dealerCard.src =  "./cards/BACK.png";
+        playerCard = document.createElement("img");
+        playerCard.src =  "./cards/BACK.png";
+        document.getElementById("dealer-cards").append(dealerCard);
+        document.getElementById("your-cards").append(playerCard);
+    }
+
+    document.getElementById('increase-bet').addEventListener('click', increaseBet);
+    document.getElementById('decrease-bet').addEventListener('click', decreaseBet);
+    document.getElementById('lock-bet').addEventListener('click', lockBet);
 }
 
 function buildDeck() {
@@ -86,9 +126,9 @@ function startGame() {
     dealerSum += getValue(showing);
     dealerAceCount += checkAce(showing);
 
-    bet = 50;
     balance -= bet;
 
+    document.getElementById('balance').innerText = balance;
     document.getElementById('your-sum').innerText = "";
     document.getElementById('dealer-sum').innerText = "";
     document.getElementById("bet").innerText = bet;
@@ -100,19 +140,46 @@ function startGame() {
         let card = deck.pop();
         yourCards.push(card);
         cardImg.src = "./cards/" + card + ".png";
-        yourSum += getValue(card);
+        playerSum += getValue(card);
         yourAceCount += checkAce(card);
         document.getElementById("your-cards").append(cardImg);
     }
     document.getElementById("hit").addEventListener("click", hit);
     document.getElementById("stand").addEventListener("click", stand);
 
+    document.getElementById('your-sum').innerText += playerSum;
+    document.getElementById('dealer-sum').innerText += getValue(dealerCards[1]);
+
     if (blackJack()){
         stand();
     }
 }
 
+function lockBet(){
+    betLocked = false;
+
+    document.getElementById('increase-bet').style.visibility = 'hidden';
+    document.getElementById('decrease-bet').style.visibility = 'hidden';
+    document.getElementById('lock-bet').style.visibility = 'hidden';
+    
+    while (document.getElementById("your-cards").firstChild){
+        document.getElementById("your-cards").removeChild(document.getElementById("your-cards").firstChild);
+    }
+
+    while (document.getElementById("dealer-cards").firstChild){
+        document.getElementById("dealer-cards").removeChild(document.getElementById("dealer-cards").firstChild);
+    }
+
+
+    buildDeck();
+    shuffleDeck();
+    startGame();
+
+
+}
+
 function hit() {
+    
     if (!canHit) {
         return;
     }
@@ -121,14 +188,16 @@ function hit() {
     let card = deck.pop();
     yourCards.push(card);
     cardImg.src = "./cards/" + card + ".png";
-    yourSum += getValue(card);
+    playerSum += getValue(card);
     yourAceCount += checkAce(card);
     document.getElementById("your-cards").append(cardImg);
 
-    if (reduceAce(yourSum, yourAceCount) > 21) { //A, J, 8 -> 1 + 10 + 8
+    if (reduceAce(playerSum, yourAceCount) > 21) { //A, J, 8 -> 1 + 10 + 8
         canHit = false;
         stand();
     }
+
+    document.getElementById('your-sum').innerText = playerSum;
 
 }
 
@@ -137,16 +206,23 @@ function stand() {
     while (dealerSum < 17) {
         let cardImg = document.createElement("img");
         let card = deck.pop();
+
+        if ((dealerSum + getValue(card) > 21) && (checkAce(card) == 1)){
+            dealerReduceAce(dealerSum, dealerAceCount + 1);
+        }
+
+        else{
+            dealerAceCount += checkAce(card);
+        }
+
         dealerCards.push(card);
         cardImg.src = "./cards/" + card + ".png";
         dealerSum += getValue(card);
-        dealerAceCount += checkAce(card);
         document.getElementById("dealer-cards").append(cardImg);
-        dealerSum = reduceAce(dealerSum, dealerAceCount);
     }
 
-    dealerSum = reduceAce(dealerSum, dealerAceCount);
-    yourSum = reduceAce(yourSum, yourAceCount);
+    dealerSum = dealerReduceAce(dealerSum, dealerAceCount);
+    playerSum = reduceAce(playerSum, yourAceCount);
 
     canHit = false;
     document.getElementById('dealer-cards').children[0].src = "./cards/" + hidden + ".png";
@@ -159,7 +235,7 @@ function stand() {
         bet = 0;
     }
 
-    else if (yourSum > 21){
+    else if (playerSum > 21){
         message = "You Bust!";
         bet = 0;
     }
@@ -170,30 +246,30 @@ function stand() {
         bet = 0;
     }
 
-    else if (yourSum > dealerSum){
+    else if (playerSum > dealerSum){
         message = "You Win!"
         balance += 2*bet;
         bet = 0;
     }
 
-    else if (yourSum < dealerSum){
+    else if (playerSum < dealerSum){
         message = "You Loose!";
         bet = 0;
     }
 
-    else if (yourSum == dealerSum){
+    else if (playerSum == dealerSum){
         message = "Push";
         balance += bet;
         bet = 0;
     }
 
     document.getElementById("dealer-sum").innerText = dealerSum;
-    document.getElementById("your-sum").innerText = yourSum;
+    document.getElementById("your-sum").innerText = playerSum;
     document.getElementById("results").innerText = message;
     document.getElementById('stand').style.visibility = 'hidden';
     document.getElementById('hit').style.visibility = 'hidden';
     document.getElementById('play-again').style.visibility = 'visible';
-    document.getElementById("play-again").addEventListener("click", playAgain);
+    document.getElementById("play-again").addEventListener("click", resetGame);
 }
 
 function getValue(card) {
@@ -224,9 +300,17 @@ function reduceAce(playerSum, playerAceCount) {
     return playerSum;
 }
 
+function dealerReduceAce(dealerSum, dealerAceCount) {
+    while (dealerSum > 21 && dealerAceCount > 0) {
+        dealerSum -= 10;
+        dealerAceCount -= 1;
+    }
+    return dealerSum;
+}
+
 function playAgain(){
     dealerSum = 0;
-    yourSum = 0;
+    playerSum = 0;
 
     dealerAceCount = 0;
     yourAceCount = 0; 
@@ -295,4 +379,21 @@ function dealerBlackJack(){
     }
 
     return (ace && ten);
+}
+
+function increaseBet(){
+    if (bet + 25 <= balance){
+        bet += 25;
+        document.getElementById("bet").innerText = bet;
+    }
+
+    document.getElementById('balance').innerText = balance - bet;
+}
+
+function decreaseBet(){
+    if (bet - 25 > 0){
+        bet -= 25;
+        document.getElementById("bet").innerText = bet;
+    }
+    document.getElementById('balance').innerText = balance - bet;
 }
